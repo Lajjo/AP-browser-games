@@ -1,6 +1,5 @@
 <script lang="ts">
-	import Bomb from '$lib/assets/bomb.svelte';
-
+	import { base } from '$app/paths';
 	import { createEventDispatcher } from 'svelte';
 
 	const dispatch = createEventDispatcher();
@@ -19,7 +18,7 @@
 <td class={clicked ? 'dug' : flagged ? 'flag' : ''} on:mousedown={(e) => handleClick(e)}>
 	{#if clicked}
 		{#if isBomb === true}
-			<img alt="bomb" src="/bomb-large.png" />
+			<img alt="bomb" src={base + '/bomb-large.png'} />
 		{:else if adjacentBombs > 0}
 			{adjacentBombs}
 		{/if}
@@ -46,6 +45,6 @@
 		background: url('/Spotdug.png') no-repeat center/100%;
 	}
 	.flag {
-		background: url('/Heavy Rock.png') no-repeat center/100%;
+		background: url('/heavy-rock-big.png') no-repeat center/100%;
 	}
 </style>

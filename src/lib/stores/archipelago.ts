@@ -1,3 +1,4 @@
+import type { APLookupList, APReverseLookupList } from "$lib/types";
 import { readable, writable } from "svelte/store";
 
 export const ARCHIPELAGO_PROTOCOL_VERSION = readable({
@@ -23,9 +24,9 @@ export const players = writable([]);
 export const hintCost = writable(null);
 
 // Location and item maps, populated from localStorage
-export const apItemsById = writable({});
-export const apLocationsById = writable({});
-export const apLocationsByName = writable({});
+export const apItemsById = writable<APReverseLookupList>({});
+export const apLocationsById = writable<APReverseLookupList>({});
+export const apLocationsByName = writable<APLookupList>({});
 
 // Tracks if auto-scrolling is currently paused
 export const autoScrollPaused = writable(false);
@@ -48,7 +49,7 @@ export const itemsReceived = writable([]);
 export const maxReconnectAttempts = readable(10);
 export const preventReconnect = writable(false);
 export const reconnectAttempts = writable(0);
-export const reconnectTimeout = writable<NodeJS.Timeout>(null);
+export const reconnectTimeout = writable<number | null>(null);
 export const lastServerAddress = writable(null);
 
 // Location Ids provided by the server

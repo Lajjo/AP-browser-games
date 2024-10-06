@@ -1,10 +1,11 @@
+import { ARCHIPELAGO_PROTOCOL_VERSION, CLIENT_STATUS, DEFAULT_SERVER_PORT, apItemsById, apLocationsById, apLocationsByName, checkedLocations, itemsReceived, lastServerAddress, messages, missingLocations, playerSlot, playerTeam, players, preventReconnect, reconnectAttempts, reconnectTimeout, serverAuthError, serverPassword, serverSocket, slotName } from "$lib/stores/archipelago";
+import type { APDataPackage, APItem, MessagePart } from "$lib/types";
 import { get } from "svelte/store";
-import { messagesValue, reconnectAttemptsValue, serverSocketValue } from "./data";
-import { ARCHIPELAGO_PROTOCOL_VERSION, CLIENT_STATUS, DEFAULT_SERVER_PORT, apItemsById, apLocationsById, apLocationsByName, checkedLocations, itemsReceived, messages, missingLocations, playerSlot, playerTeam, players, preventReconnect, reconnectAttempts, reconnectTimeout, serverAuthError, serverPassword, serverSocket, slotName } from "$lib/stores/archipelago";
-import { bombs, boardHeight, boardWidth } from '$lib/stores/digging-game';
+import { maxReconnectAttemptsValue, playersValue, reconnectAttemptsValue, serverSocketValue } from "./data";
+import { boardHeightStore, boardWidthStore, bombsStore } from "$lib/stores/digging-game";
 
 
-export const connectToServer = async (address: string, player: string | null, password: string | null) => {
+export const connectToServer = async (address: string, player?: string | null, password?: string | null) => {
   if (serverSocketValue?.readyState === WebSocket.OPEN) {
     serverSocketValue.close();
     serverSocket.set(null);
@@ -28,7 +29,7 @@ export const connectToServer = async (address: string, player: string | null, pa
   serverAddress = serverAddress.replace(/^.*\/\//, '');
 
   // Store the last given password
-  serverPassword.set(password);
+  serverPassword.set(password ?? null);
 
   // Reset the array of items received on every connection. This prevents the client from accepting cheat items
   // multiple times in the case of an AP server reconnection.
@@ -81,9 +82,9 @@ export const connectToServer = async (address: string, player: string | null, pa
             checkedLocations.set(command.checked_locations);
             missingLocations.set(command.missing_locations);
             itemsReceived.set([]);
-            bombs.set(0);
-            boardHeight.set(0);
-            boardWidth.set(0);
+            bombsStore.set(5);
+            boardHeightStore.set(5);
+            boardWidthStore.set(5);
 
             // Update header text
             serverStatus?.classList.remove('red');
@@ -97,8 +98,6 @@ export const connectToServer = async (address: string, player: string | null, pa
             playerTeam.set(command.team);
             playerSlot.set(command.slot);
 
-            // Enable the "Begin" button
-            document?.getElementById('control-button')?.removeAttribute('disabled');
             break;
 
           case 'ConnectionRefused':
@@ -121,25 +120,24 @@ export const connectToServer = async (address: string, player: string | null, pa
 
           case 'ReceivedItems':
             // Handle received items
-            command.items.forEach((item) => {
+            command.items.forEach((item: APItem) => {
               // Ignore items in this packet if it is the result of a reconnection, unless the item
               // is the GeoCities item, because the user deserves to revisit the year 2001.
 
               switch (item.item) {
                 // Handle GeoCities Website
                 case 80000:
-                  boardWidth.update((value) => value + 1);
-                  console.log("boardWidth: ", get(boardWidth));
+                  boardWidthStore.update((value) => value + 1);
                   break;
 
                 // Handle joke API calls
                 case 80001:
-                  boardHeight.update((value) => value + 1);
+                  boardHeightStore.update((value) => value + 1);
                   break;
 
                 // Handle motivational videos
                 case 80002:
-                  bombs.update((value) => value + 1);
+                  bombsStore.update((value) => value + 1);
                   break;
               }
             });
@@ -154,7 +152,14 @@ export const connectToServer = async (address: string, player: string | null, pa
             break;
 
           case 'PrintJSON':
-            messages.update((items) => ([...items, ...command.data]));
+            switch (command.type) {
+              case "ItemSend":
+                messages.update((items) => ([...items, formatItemSendMessage(command.data)]))
+                break;
+              default:
+                messages.update((items) => ([...items, ...command.data]));
+                break;
+            }
             break;
 
           case 'DataPackage':
@@ -179,21 +184,21 @@ export const connectToServer = async (address: string, player: string | null, pa
     };
 
     serverSocketValue.onclose = () => {
-      const serverStatus = document.getElementById('server-status');
+      /*const serverStatus = document.getElementById('server-status');
       serverStatus?.classList.remove('green');
       serverStatus && (serverStatus.innerText = 'Not Connected');
       serverStatus?.classList.add('red');
-
+*/
       // If the user cleared the server address, do nothing
-      const serverAddress = document?.getElementById('server-address')?.value;
+      const serverAddress = get(lastServerAddress);
       if (preventReconnect || !serverAddress) { return; }
 
       if (reconnectTimeout) {
-        clearTimeout(get(reconnectTimeout));
+        window.clearTimeout(get(reconnectTimeout) ?? 0);
         reconnectTimeout.set(null);
       }
 
-      reconnectTimeout.set(setTimeout(() => {
+      reconnectTimeout.set(window.setTimeout(() => {
         // Do not attempt to reconnect if a server connection exists already. This can happen if a user attempts
         // to connect to a new server after connecting to a previous one
         if (serverSocketValue?.readyState === WebSocket.OPEN) { return; }
@@ -245,7 +250,7 @@ const requestDataPackage = () => {
   }]));
 };
 
-export const sendMessageToServer = (message) => {
+export const sendMessageToServer = (message: string) => {
   if (serverSocketValue?.readyState === WebSocket.OPEN) {
     serverSocketValue.send(JSON.stringify([{
       cmd: 'Say',
@@ -260,12 +265,12 @@ export const serverSync = () => {
   }
 };
 
-export const sendLocationCheck = (locationId) => {
+export const sendLocationCheck = (locationId: number) => {
   let cl = get(checkedLocations);
   cl.push(locationId);
   checkedLocations.set(cl);
   let ml = get(missingLocations);
-  ml.splice(ml.indexOf(locationId));
+  ml.shift();
   missingLocations.set(ml);
   serverSocketValue?.send(JSON.stringify([{
     cmd: 'LocationChecks',
@@ -277,19 +282,39 @@ export const sendGoalComplete = () => {
   serverSocketValue?.send(JSON.stringify([{ cmd: 'StatusUpdate', status: get(CLIENT_STATUS).CLIENT_GOAL }]));
 };
 
-const buildItemAndLocationData = (dataPackage) => {
+const buildItemAndLocationData = (dataPackage: APDataPackage) => {
+  let itemsById: { [id: number]: string } = {}, locationsById: { [id: number]: string } = {};
   Object.values(dataPackage.games).forEach((game) => {
     Object.keys(game.item_name_to_id).forEach((item) => {
-      get(apItemsById)[game.item_name_to_id[item]] = item;
+      itemsById[game.item_name_to_id[item]] = item;
     });
 
     Object.keys(game.location_name_to_id).forEach((location) => {
-      get(apLocationsById)[game.location_name_to_id[location]] = location;
+      locationsById[game.location_name_to_id[location]] = location;
     });
 
   });
 
-  apLocationsByName.set(dataPackage.games['ChecksFinder'].location_name_to_id);
-  console.log(dataPackage.games['ChecksFinder']);
+  apItemsById.set(itemsById);
+  apLocationsById.set(locationsById);
+  apLocationsByName.set((dataPackage as APDataPackage).games['ChecksFinder'].location_name_to_id);
+}
 
-};
+function formatItemSendMessage(data: Array<MessagePart>): any {
+  const items = get(apItemsById);
+  const locations = get(apLocationsById);
+  return data.map(d => {
+    switch (d.type) {
+      case "player_id":
+        const player = playersValue.find(p => p.slot === parseInt(d.text));
+        return player?.alias ?? player?.name ?? '';
+      case "item_id":
+        return items[+d.text];
+      case "location_id":
+        return locations[+d.text];
+      default:
+        return d.text;
+    }
+  }).join('');
+}
+
