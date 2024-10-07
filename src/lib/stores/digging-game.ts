@@ -35,3 +35,5 @@ export const tilesStore = derived([gridStore], ([$gridStore]) => $gridStore.flat
 export const flaggedSpotsStore = derived([tilesStore], ([$tilesStore]) => $tilesStore.filter((spot: Tile) => spot.flagged).length);
 export const undugSpotsStore = derived([currentColumnsStore, currentRowsStore, tilesStore], ([$currentColumnsStore, $currentRowsStore, $tilesStore]) => $currentColumnsStore * $currentRowsStore - $tilesStore.filter((spot: Tile) => spot.clicked).length);
 export const hasWonStore = derived([placedBombsStore, undugSpotsStore, tilesStore], ([$placedBombsStore, $undugSpotStore, $tilesStore]) => $placedBombsStore === $undugSpotStore && !$tilesStore.some((t) => t.clicked && t.isBomb));
+
+export const showConsole = writable(false);

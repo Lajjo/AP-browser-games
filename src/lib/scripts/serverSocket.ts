@@ -1,8 +1,9 @@
-import { ARCHIPELAGO_PROTOCOL_VERSION, CLIENT_STATUS, DEFAULT_SERVER_PORT, apItemsById, apLocationsById, apLocationsByName, checkedLocations, itemsReceived, lastServerAddress, messages, missingLocations, playerSlot, playerTeam, players, preventReconnect, reconnectAttempts, reconnectTimeout, serverAuthError, serverPassword, serverSocket, slotName } from "$lib/stores/archipelago";
+import { ARCHIPELAGO_PROTOCOL_VERSION, CLIENT_STATUS, DEFAULT_SERVER_PORT, apItemsById, apLocationsById, apLocationsByName, checkedLocations, itemsReceived, lastServerAddress, messages, missingLocations, playerSlot, playerTeam, players, preventReconnect, reconnectAttempts, reconnectTimeout, serverAuthError, serverPassword, serverSocket, serverStatus, slotName } from "$lib/stores/archipelago";
 import type { APDataPackage, APItem, MessagePart } from "$lib/types";
 import { get } from "svelte/store";
-import { maxReconnectAttemptsValue, playersValue, reconnectAttemptsValue, serverSocketValue } from "./data";
+import { maxReconnectAttemptsValue, playerNamesValue, playerSlotValue, playingValue, reconnectAttemptsValue, serverSocketValue } from "./data";
 import { boardHeightStore, boardWidthStore, bombsStore } from "$lib/stores/digging-game";
+import { deathLinked } from "./digging-game.svelte";
 
 
 export const connectToServer = async (address: string, player?: string | null, password?: string | null) => {
@@ -46,7 +47,6 @@ export const connectToServer = async (address: string, player?: string | null, p
     serverSocketValue.onmessage = (event) => {
       const commands = JSON.parse(event.data);
       for (const command of commands) {
-        const serverStatus = document.getElementById('server-status');
         switch (command.cmd) {
           case 'RoomInfo':
             // Update the local cache of location and item maps if necessary
@@ -66,7 +66,7 @@ export const connectToServer = async (address: string, player?: string | null, p
               game: 'ChecksFinder',
               name: get(slotName),
               uuid: getClientId(),
-              tags: ['AP', 'BK_Sudoku'],
+              tags: ['AP', 'DeathLink'],
               password: get(serverPassword),
               version: get(ARCHIPELAGO_PROTOCOL_VERSION),
               items_handling: 0b111,
@@ -78,6 +78,7 @@ export const connectToServer = async (address: string, player?: string | null, p
             // Reset reconnection info
             reconnectAttempts.set(0);
 
+
             // Store the reported location check data from the server. They are arrays of locationIds
             checkedLocations.set(command.checked_locations);
             missingLocations.set(command.missing_locations);
@@ -87,9 +88,7 @@ export const connectToServer = async (address: string, player?: string | null, p
             boardWidthStore.set(5);
 
             // Update header text
-            serverStatus?.classList.remove('red');
-            serverStatus && (serverStatus.innerText = 'Connected');
-            serverStatus?.classList.add('green');
+            serverStatus.set('Connected')
 
             // Save the list of players provided by the server
             players.set(command.players);
@@ -101,9 +100,7 @@ export const connectToServer = async (address: string, player?: string | null, p
             break;
 
           case 'ConnectionRefused':
-            serverStatus?.classList.remove('connected');
-            serverStatus && (serverStatus.innerText = 'Not Connected');
-            serverStatus?.classList.add('disconnected');
+            serverStatus.set('Not Connected');
             if (serverSocketValue && serverSocketValue.readyState === WebSocket.OPEN) {
               if (command.errors.includes('InvalidPassword')) {
                 messages.update(items => ([...items, serverPassword === null ?
@@ -174,6 +171,10 @@ export const connectToServer = async (address: string, player?: string | null, p
           case 'Bounced':
             // This command can be used for a variety of things. Currently, it is used for keep-alive and DeathLink.
             // keep-alive packets can be safely ignored
+            if (command.tags.includes('DeathLink') && command.data.source !== get(slotName) && playingValue) {
+              deathLinked();
+            }
+            messages.update((items) => ([...items, command.data.source + ' ' + command.data.cause]));
             break;
 
           default:
@@ -184,11 +185,7 @@ export const connectToServer = async (address: string, player?: string | null, p
     };
 
     serverSocketValue.onclose = () => {
-      /*const serverStatus = document.getElementById('server-status');
-      serverStatus?.classList.remove('green');
-      serverStatus && (serverStatus.innerText = 'Not Connected');
-      serverStatus?.classList.add('red');
-*/
+      serverStatus.set('Not Connected');
       // If the user cleared the server address, do nothing
       const serverAddress = get(lastServerAddress);
       if (preventReconnect || !serverAddress) { return; }
@@ -282,6 +279,10 @@ export const sendGoalComplete = () => {
   serverSocketValue?.send(JSON.stringify([{ cmd: 'StatusUpdate', status: get(CLIENT_STATUS).CLIENT_GOAL }]));
 };
 
+export const sendDeathLink = () => {
+  serverSocketValue?.send(JSON.stringify([{ cmd: 'Bounce', tags: ['DeathLink'], data: { time: Date.now(), source: playerNamesValue[playerSlotValue || 0], cause: 'blew it' } }]))
+}
+
 const buildItemAndLocationData = (dataPackage: APDataPackage) => {
   let itemsById: { [id: number]: string } = {}, locationsById: { [id: number]: string } = {};
   Object.values(dataPackage.games).forEach((game) => {
@@ -300,14 +301,13 @@ const buildItemAndLocationData = (dataPackage: APDataPackage) => {
   apLocationsByName.set((dataPackage as APDataPackage).games['ChecksFinder'].location_name_to_id);
 }
 
-function formatItemSendMessage(data: Array<MessagePart>): any {
+const formatItemSendMessage = (data: Array<MessagePart>) => {
   const items = get(apItemsById);
   const locations = get(apLocationsById);
   return data.map(d => {
     switch (d.type) {
       case "player_id":
-        const player = playersValue.find(p => p.slot === parseInt(d.text));
-        return player?.alias ?? player?.name ?? '';
+        return playerNamesValue[parseInt(d.text)];
       case "item_id":
         return items[+d.text];
       case "location_id":

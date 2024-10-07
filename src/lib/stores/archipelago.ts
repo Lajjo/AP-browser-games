@@ -1,5 +1,5 @@
-import type { APLookupList, APReverseLookupList } from "$lib/types";
-import { readable, writable } from "svelte/store";
+import { type Player, type APLookupList, type APReverseLookupList } from "$lib/types";
+import { derived, readable, writable, type Writable } from "svelte/store";
 
 export const ARCHIPELAGO_PROTOCOL_VERSION = readable({
   major: 0,
@@ -20,8 +20,14 @@ export const permissionMap = readable({
 export const slotName = writable<string | null>(null);
 export const playerSlot = writable(null);
 export const playerTeam = writable(null);
-export const players = writable([]);
+export const players: Writable<Array<Player>> = writable<Array<Player>>([]);
 export const hintCost = writable(null);
+export const playerNames = derived(players, ($players) => {
+  let playerSlotsToNames: { [id: number]: string } = {};
+  $players?.forEach((player: Player) =>
+    playerSlotsToNames[player.slot] = player.name)
+  return playerSlotsToNames;
+})
 
 // Location and item maps, populated from localStorage
 export const apItemsById = writable<APReverseLookupList>({});
@@ -65,3 +71,5 @@ export const CLIENT_STATUS = readable({
 });
 
 export const messages = writable<any>([]);
+
+export const serverStatus = writable('');

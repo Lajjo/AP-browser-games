@@ -5,7 +5,8 @@
 		lastServerAddress,
 		playerSlot,
 		preventReconnect,
-		serverSocket
+		serverSocket,
+		serverStatus
 	} from '$lib/stores/archipelago';
 
 	import { get } from 'svelte/store';
@@ -37,21 +38,23 @@
 
 <section>
 	<h1>Digging Game</h1>
-	<form>
-		<div>
-			<label for="address">Server address:</label>
-			<input name="address" id="server-address" bind:value={serverAddress} />
-		</div>
-		<div>
-			<label for="player">Player name:</label>
-			<input name="player" id="player" bind:value={playerName} />
-		</div>
-		<div>
-			<label for="password">Password:</label>
-			<input name="password" id="password" bind:value={password} />
-		</div>
-		<button on:click={handleConnect}>{serverSocket ? 'Connect' : 'Disconnect'}</button>
-	</form>
+	{#if $serverStatus !== 'Connected'}
+		<form>
+			<div>
+				<label for="address">Server address:</label>
+				<input name="address" id="server-address" bind:value={serverAddress} />
+			</div>
+			<div>
+				<label for="player">Player name:</label>
+				<input name="player" id="player" bind:value={playerName} />
+			</div>
+			<div>
+				<label for="password">Password:</label>
+				<input name="password" id="password" bind:value={password} />
+			</div>
+			<button on:click={handleConnect}>{serverSocket ? 'Connect' : 'Disconnect'}</button>
+		</form>
+	{/if}
 </section>
 
 <style>

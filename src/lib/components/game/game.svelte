@@ -14,6 +14,7 @@
 		flaggedSpotsStore,
 		playingStore
 	} from '$lib/stores/digging-game';
+	import { fly } from 'svelte/transition';
 	import DiggingArea from './digging-area.svelte';
 
 	$: $bombsStore, $boardWidthStore, $boardHeightStore, $playingStore, getNewBoard();
@@ -111,18 +112,19 @@
 	}
 
 	.game-status {
+		width: 100%;
 		display: flex;
 		flex-direction: row;
 		justify-content: space-around;
 	}
 
 	.game-status > span {
-		font-size: 40px;
+		font-size: clamp(16px, 5vw, 35px);
 	}
 
 	img {
 		aspect-ratio: 1;
-		height: 80px;
+		height: clamp(16px, 9vw, 80px);
 	}
 
 	hr {

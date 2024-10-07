@@ -5,6 +5,10 @@
 	import Header from '$lib/components/header.svelte';
 	import Game from '$lib/components/game/game.svelte';
 	import Console from '$lib/components/console.svelte';
+	import { fade, fly, slide } from 'svelte/transition';
+	import { base } from '$app/paths';
+	import { showConsole } from '$lib/stores/digging-game';
+	import { quadInOut } from 'svelte/easing';
 
 	onMount(() => {
 		document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -13,8 +17,21 @@
 
 <main>
 	<Header />
-	<Game />
-	<Console />
+	<div class="content-area" transition:slide>
+		{#if $showConsole}
+			<Console />
+		{/if}
+		<Game />
+	</div>
+	{#if !$showConsole}
+		<button
+			transition:fade={{ duration: 1000, easing: quadInOut }}
+			class={'floating-chat__open-chat--closed'}
+			on:click={() => showConsole.set(true)}
+		>
+			<img src={base + '/map.png'} />
+		</button>
+	{/if}
 </main>
 
 <style>
@@ -33,6 +50,33 @@
 		max-width: 100vw;
 		min-width: 100vw;
 	}
+
+	.content-area {
+		display: flex;
+		flex-direction: row;
+		transition: all 1000s ease-in-out;
+		width: 100vw;
+	}
+
+	.floating-chat__open-chat--closed {
+		position: -webkit-sticky;
+		position: fixed;
+		top: 12rem;
+		left: 0;
+		z-index: 9999;
+		aspect-ratio: 1;
+		background-color: transparent;
+		border: 10px solid transparent;
+		border-image-source: url('/borders/message-box-small.png');
+		border-image-slice: 30% fill;
+		border-image-repeat: repeat;
+		transition: all 500ms ease;
+	}
+
+	img {
+		padding: 5px;
+	}
+
 	:global(body) {
 		display: flex;
 		justify-content: center;

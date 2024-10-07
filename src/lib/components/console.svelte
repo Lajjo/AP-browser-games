@@ -1,10 +1,18 @@
 <script lang="ts">
-	import { messages } from '$lib/stores/archipelago';
+	import { base } from '$app/paths';
 	import { sendMessageToServer } from '$lib/scripts/serverSocket';
+	import { messages } from '$lib/stores/archipelago';
+	import { showConsole } from '$lib/stores/digging-game';
+	import { afterUpdate } from 'svelte';
+	import { quadInOut } from 'svelte/easing';
 	import { fly } from 'svelte/transition';
-	import type { Part, SegmentedMessage } from '$lib/types';
 
+	let consoleList: HTMLSpanElement | null = null;
 	let consoleInput = '';
+
+	afterUpdate(() => {
+		consoleList?.scroll({ top: consoleList.scrollHeight, behavior: 'smooth' });
+	});
 
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key !== 'Enter') {
@@ -15,8 +23,11 @@
 	}
 </script>
 
-<section>
-	<span id="console">
+<section transition:fly={{ duration: 1000, easing: quadInOut, x: -400 }}>
+	<button class="close-console" on:click={() => showConsole.set(false)}>
+		<img alt="close-console" src={base + '/cross.png'} />
+	</button>
+	<span class="console" bind:this={consoleList}>
 		{#each $messages as message}
 			{#if Object.hasOwn(message, 'messageParts')}
 				{#each message?.messageParts && message.messageParts as { text, type }}
@@ -29,37 +40,60 @@
 			{/if}
 		{/each}
 	</span>
-	<input class="console-input" type="text" bind:value={consoleInput} on:keydown={handleKeyDown} />
+	<input
+		class="console-input"
+		type="text"
+		placeholder="Message or !command to send to server"
+		bind:value={consoleInput}
+		on:keydown={handleKeyDown}
+	/>
 </section>
 
 <style>
 	/* your styles go here */
 
 	section {
-		background:
-			url('https://archipelago.gg/static/static/backgrounds/cliffs/grass/cliff-top.png') top
-				repeat-x,
-			url('https://archipelago.gg/static/static/backgrounds/grass.png') repeat;
-		background-size:
-			20px 71px,
-			525px 525px;
-		width: 100vw;
+		position: relative;
+		height: 70vh;
+		width: 100%;
 		display: block;
 		flex: 0 1 auto;
-		margin-top: 20px;
-		padding-top: 75px;
+		margin-right: 1rem;
 	}
 
-	#console {
-		display: block;
-		min-height: 17vh;
-		max-height: 17vh;
+	.console {
+		border: 10px solid transparent;
+		border-image-source: url('/borders/message-box-small.png');
+		border-image-slice: 30% fill;
+		border-image-repeat: repeat;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		min-height: 45rem;
+		max-height: 45rem;
 		overflow: scroll;
-		padding: 0px 10px;
+		padding: 2px;
 		white-space: pre-wrap;
+		color: white;
 	}
 
 	.console-input {
-		width: 100vw;
+		background-color: transparent;
+		border: 10px solid transparent;
+		border-image-source: url('/borders/input-box-small.png');
+		border-image-slice: 30% fill;
+		border-image-repeat: repeat;
+		display: block;
+		width: 100%;
+		color: white;
+		outline: none;
+	}
+
+	.close-console {
+		position: absolute;
+		right: 10px;
+		top: 10px;
+		border: none;
+		background-color: transparent;
 	}
 </style>

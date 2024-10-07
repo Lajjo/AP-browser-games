@@ -1,17 +1,13 @@
 import { availableChecksStore, boardHeightStore, boardWidthStore, bombsStore, checkedStore, currentBombsStore, currentColumnsStore, currentRowsStore, gridStore, hasWonStore, missingStore, placedBombsStore, playingStore, tilesStore } from "$lib/stores/digging-game";
 import { Tile } from "$lib/types";
 import { get } from "svelte/store";
-import { sendGoalComplete, sendLocationCheck } from "./serverSocket";
+import { sendDeathLink, sendGoalComplete, sendLocationCheck } from "./serverSocket";
 
 
 
 export function check(win: boolean) {
   if (win) {
-    const currentBombs = get(currentBombsStore);
-    const currentRows = get(currentRowsStore);
-    const currentColumns = get(currentColumnsStore);
     const checked = get(checkedStore);
-    const missing = get(missingStore);
     if (get(availableChecksStore)) {
       sendLocationCheck(81000 + checked);
     } else if (get(hasWonStore)) {
@@ -71,6 +67,7 @@ export async function digSpot(x: number, y: number, autoDig = true) {
     }
     if (tile.isBomb) {
       showBoard();
+      sendDeathLink();
       setTimeout(() => {
         playingStore.set(false);
         getNewBoard();
@@ -149,6 +146,13 @@ export function placeBombs(startTile: any) {
   }
 }
 
-
+export function deathLinked() {
+  showBoard();
+  setTimeout(() => {
+    playingStore.set(false);
+    getNewBoard();
+  }, 2500);
+  gridStore.update((g) => g)
+}
 
 
