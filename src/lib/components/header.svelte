@@ -1,5 +1,6 @@
 <script lang="ts">
 	// your script goes here
+	import { base } from '$app/paths';
 	import { connectToServer } from '$lib/scripts/serverSocket.ts';
 	import {
 		lastServerAddress,
@@ -8,6 +9,7 @@
 		serverSocket,
 		serverStatus
 	} from '$lib/stores/archipelago';
+	import { showSettings } from '$lib/stores/digging-game';
 
 	import { get } from 'svelte/store';
 
@@ -55,6 +57,9 @@
 			<button on:click={handleConnect}>{serverSocket ? 'Connect' : 'Disconnect'}</button>
 		</form>
 	{/if}
+	<button class="settings" on:click={() => showSettings.set(true)}>
+		<img alt="setting" src={base + '/book.png'} />
+	</button>
 </section>
 
 <style>
@@ -95,5 +100,10 @@
 	div {
 		display: flex;
 		flex-direction: column;
+	}
+
+	.settings {
+		background-color: transparent;
+		border: none;
 	}
 </style>

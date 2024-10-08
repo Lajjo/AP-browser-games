@@ -5,7 +5,7 @@
 	import { showConsole } from '$lib/stores/digging-game';
 	import { afterUpdate } from 'svelte';
 	import { quadInOut } from 'svelte/easing';
-	import { fly } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
 
 	let consoleList: HTMLSpanElement | null = null;
 	let consoleInput = '';
@@ -31,12 +31,18 @@
 		{#each $messages as message}
 			{#if Object.hasOwn(message, 'messageParts')}
 				{#each message?.messageParts && message.messageParts as { text, type }}
-					<p in:fly|global={{ y: 1200, duration: 1000 }}>{text}</p>
+					<p in:fade|global={{ duration: 1000 }}>
+						{text}
+					</p>
 				{/each}
 			{:else if Object.hasOwn(message, 'text')}
-				<p in:fly|global={{ y: 1200, duration: 1000 }}>{message.text}</p>
+				<p in:fade|global={{ duration: 1000 }}>
+					{message.text}
+				</p>
 			{:else}
-				<p in:fly|global={{ y: 1200, duration: 1000 }}>{message}</p>
+				<p in:fade|global={{ duration: 1000 }}>
+					{message}
+				</p>
 			{/if}
 		{/each}
 	</span>
@@ -57,8 +63,7 @@
 		height: 70vh;
 		width: 100%;
 		display: block;
-		flex: 0 1 auto;
-		margin-right: 1rem;
+		flex: 1;
 	}
 
 	.console {

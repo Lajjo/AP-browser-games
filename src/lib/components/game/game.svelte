@@ -12,15 +12,17 @@
 		currentColumnsStore,
 		currentRowsStore,
 		flaggedSpotsStore,
-		playingStore
+		playingStore,
+		showConsole
 	} from '$lib/stores/digging-game';
 	import { fly } from 'svelte/transition';
 	import DiggingArea from './digging-area.svelte';
+	import { serverStatus } from '$lib/stores/archipelago';
 
 	$: $bombsStore, $boardWidthStore, $boardHeightStore, $playingStore, getNewBoard();
 </script>
 
-<section>
+<section class={$showConsole ? 'section-split' : ''}>
 	<div class="island">
 		<div class="game-status">
 			<img alt="available checks" src={base + '/ap-icon-large.png'} />
@@ -30,20 +32,26 @@
 			<img alt="placed bombs" src={base + '/bomb-large.png'} />
 			<span>
 				{$currentBombsStore}
-				<hr />
-				20
+				{#if $serverStatus === 'Connected'}
+					<hr />
+					20
+				{/if}
 			</span>
 			<img alt="map height" src={base + '/up-down-arrow-big.png'} />
 			<span>
 				{$currentRowsStore}
-				<hr />
-				10
+				{#if $serverStatus === 'Connected'}
+					<hr />
+					10
+				{/if}
 			</span>
 			<img alt="map width" src={base + '/left-right-arrow-big.png'} />
 			<span>
 				{$currentColumnsStore}
-				<hr />
-				10
+				{#if $serverStatus === 'Connected'}
+					<hr />
+					10
+				{/if}
 			</span>
 			<img alt="flagged spots" src={base + '/heavy-rock-big.png'} />
 			<span>
@@ -63,7 +71,9 @@
 		margin-left: auto;
 		margin-right: auto;
 		display: flex;
-		flex: 1 1 auto;
+		justify-content: space-between;
+		justify-self: center;
+		flex: 1;
 		width: 100%;
 		user-select: none;
 		-webkit-user-select: none;
@@ -71,6 +81,11 @@
 		-webkit-touch-user-select: none;
 		-moz-user-select: none;
 		-khtml-user-select: none;
+		transition: all 1000ms ease;
+	}
+
+	.section-split {
+		margin-left: 1rem;
 	}
 
 	.island {
@@ -120,11 +135,12 @@
 
 	.game-status > span {
 		font-size: clamp(16px, 5vw, 35px);
+		margin: 0px 10px;
 	}
 
 	img {
 		aspect-ratio: 1;
-		height: clamp(16px, 9vw, 80px);
+		height: clamp(16px, 20%, 80px);
 	}
 
 	hr {

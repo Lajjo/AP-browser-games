@@ -1,5 +1,5 @@
 import type { MessagePart, Player, SegmentedMessage } from "$lib/types";
-import { checkedLocations, itemsReceived, maxReconnectAttempts, messages, missingLocations, playerNames, playerSlot, playerTeam, players, reconnectAttempts, serverSocket, serverStatus } from "$lib/stores/archipelago";
+import { checkedLocations, deathLinkStore, itemsReceived, maxReconnectAttempts, messages, missingLocations, playerNames, playerSlot, playerTeam, players, reconnectAttempts, serverSocket, serverStatus } from "$lib/stores/archipelago";
 import { playingStore } from "$lib/stores/digging-game";
 
 export let checkedLocationsValue: number[] = [],
@@ -14,7 +14,8 @@ export let checkedLocationsValue: number[] = [],
   itemsReceivedValue: Array<number> = [],
   playerNamesValue: { [id: number]: string } = {},
   serverStatusValue: string = '',
-  playingValue: boolean = false;
+  playingValue: boolean = false,
+  deathLinkValue: boolean = false;
 
 checkedLocations.subscribe((value) => checkedLocationsValue = value);
 missingLocations.subscribe((value) => missingLocationsValue = value);
@@ -29,3 +30,4 @@ maxReconnectAttempts.subscribe(value => maxReconnectAttemptsValue = value);
 playerNames.subscribe(value => playerNamesValue = value);
 serverStatus.subscribe(value => serverStatusValue = value);
 playingStore.subscribe(value => playingValue = value);
+deathLinkStore.subscribe(value => deathLinkValue = value);

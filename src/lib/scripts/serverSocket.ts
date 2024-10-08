@@ -1,7 +1,7 @@
-import { ARCHIPELAGO_PROTOCOL_VERSION, CLIENT_STATUS, DEFAULT_SERVER_PORT, apItemsById, apLocationsById, apLocationsByName, checkedLocations, itemsReceived, lastServerAddress, messages, missingLocations, playerSlot, playerTeam, players, preventReconnect, reconnectAttempts, reconnectTimeout, serverAuthError, serverPassword, serverSocket, serverStatus, slotName } from "$lib/stores/archipelago";
+import { ARCHIPELAGO_PROTOCOL_VERSION, CLIENT_STATUS, DEFAULT_SERVER_PORT, apItemsById, apLocationsById, apLocationsByName, checkedLocations, deathLinkStore, itemsReceived, lastServerAddress, messages, missingLocations, playerSlot, playerTeam, players, preventReconnect, reconnectAttempts, reconnectTimeout, serverAuthError, serverPassword, serverSocket, serverStatus, slotName } from "$lib/stores/archipelago";
 import type { APDataPackage, APItem, MessagePart } from "$lib/types";
 import { get } from "svelte/store";
-import { maxReconnectAttemptsValue, playerNamesValue, playerSlotValue, playingValue, reconnectAttemptsValue, serverSocketValue } from "./data";
+import { deathLinkValue, maxReconnectAttemptsValue, playerNamesValue, playerSlotValue, playingValue, reconnectAttemptsValue, serverSocketValue } from "./data";
 import { boardHeightStore, boardWidthStore, bombsStore } from "$lib/stores/digging-game";
 import { deathLinked } from "./digging-game.svelte";
 
@@ -171,7 +171,7 @@ export const connectToServer = async (address: string, player?: string | null, p
           case 'Bounced':
             // This command can be used for a variety of things. Currently, it is used for keep-alive and DeathLink.
             // keep-alive packets can be safely ignored
-            if (command.tags.includes('DeathLink') && command.data.source !== get(slotName) && playingValue) {
+            if (command.tags.includes('DeathLink') && (command.data.source !== get(slotName)) && playingValue) {
               deathLinked();
             }
             messages.update((items) => ([...items, command.data.source + ' ' + command.data.cause]));
@@ -280,7 +280,7 @@ export const sendGoalComplete = () => {
 };
 
 export const sendDeathLink = () => {
-  serverSocketValue?.send(JSON.stringify([{ cmd: 'Bounce', tags: ['DeathLink'], data: { time: Date.now(), source: playerNamesValue[playerSlotValue || 0], cause: 'blew it' } }]))
+  deathLinkValue && serverSocketValue?.send(JSON.stringify([{ cmd: 'Bounce', tags: ['DeathLink'], data: { time: Date.now(), source: playerNamesValue[playerSlotValue || 0], cause: 'blew it' } }]))
 }
 
 const buildItemAndLocationData = (dataPackage: APDataPackage) => {

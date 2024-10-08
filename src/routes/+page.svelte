@@ -7,8 +7,9 @@
 	import Console from '$lib/components/console.svelte';
 	import { fade, fly, slide } from 'svelte/transition';
 	import { base } from '$app/paths';
-	import { showConsole } from '$lib/stores/digging-game';
+	import { showConsole, showSettings } from '$lib/stores/digging-game';
 	import { quadInOut } from 'svelte/easing';
+	import Option from '$lib/components/game/option.svelte';
 
 	onMount(() => {
 		document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -23,13 +24,16 @@
 		{/if}
 		<Game />
 	</div>
+	{#if $showSettings}
+		<Option />
+	{/if}
 	{#if !$showConsole}
 		<button
 			transition:fade={{ duration: 1000, easing: quadInOut }}
 			class={'floating-chat__open-chat--closed'}
 			on:click={() => showConsole.set(true)}
 		>
-			<img src={base + '/map.png'} />
+			<img alt="console" src={base + '/map.png'} />
 		</button>
 	{/if}
 </main>
@@ -55,7 +59,8 @@
 		display: flex;
 		flex-direction: row;
 		transition: all 1000s ease-in-out;
-		width: 100vw;
+		max-width: 100vw;
+		min-width: 100vw;
 	}
 
 	.floating-chat__open-chat--closed {
@@ -63,7 +68,7 @@
 		position: fixed;
 		top: 12rem;
 		left: 0;
-		z-index: 9999;
+		z-index: 4;
 		aspect-ratio: 1;
 		background-color: transparent;
 		border: 10px solid transparent;

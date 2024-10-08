@@ -37,3 +37,4 @@ export const undugSpotsStore = derived([currentColumnsStore, currentRowsStore, t
 export const hasWonStore = derived([placedBombsStore, undugSpotsStore, tilesStore], ([$placedBombsStore, $undugSpotStore, $tilesStore]) => $placedBombsStore === $undugSpotStore && !$tilesStore.some((t) => t.clicked && t.isBomb));
 
 export const showConsole = writable(false);
+export const showSettings = writable(false);

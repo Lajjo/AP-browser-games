@@ -73,3 +73,7 @@ export const CLIENT_STATUS = readable({
 export const messages = writable<any>([]);
 
 export const serverStatus = writable('');
+
+// Extra features
+export const deathLinkStore = writable(false);
+export const assistingHandStore = writable(false);
